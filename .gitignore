@@ -110,11 +110,15 @@ InitTestScene*.unity*
 
 # Python virtual environment
 venv/
+.venv/
+.python31012/
+.mlagents-src/
 *.pyc
 __pycache__/
 
 # ML-Agents training results
 results/
+TrainingLogs/
 
 # Upgrade logs
 UpgradeLog.htm
