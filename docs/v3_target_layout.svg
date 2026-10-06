@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 460" role="img" aria-labelledby="title desc">
+  <title id="title">Una arena V3 vista desde arriba</title>
+  <desc id="desc">Mesa de 1,5 por 1 metro. Franka en X local 0,4 y Z 0; cubo en X -0,4 y Z 0; target en X -0,4 y Z 0,18 metros, a la izquierda del robot.</desc>
+  <rect width="800" height="460" fill="#101d2a"/>
+  <text x="400" y="39" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="24" font-weight="bold">V3 · una arena, vista superior</text>
+  <rect x="100" y="78" width="600" height="300" rx="9" fill="#8c9498" stroke="#d9e5e4" stroke-width="4"/>
+  <text x="122" y="107" fill="#17252d" font-family="Arial,sans-serif" font-size="18" font-weight="bold">Table · 1,50 × 1,00 m</text>
+  <line x1="400" y1="145" x2="400" y2="290" stroke="#294455" stroke-dasharray="8 8" stroke-width="3"/>
+  <circle cx="400" cy="145" r="30" fill="#3198da" stroke="#ecf7ff" stroke-width="4"/>
+  <text x="400" y="151" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="14" font-weight="bold">FR3</text>
+  <text x="440" y="151" fill="#17252d" font-family="Arial,sans-serif" font-size="17">Base (X +0,40; Z 0)</text>
+  <circle cx="292" cy="305" r="24" fill="none" stroke="#46e572" stroke-width="6"/>
+  <circle cx="292" cy="305" r="3" fill="#134c21"/>
+  <rect x="385" y="290" width="30" height="30" fill="#ed952e" stroke="#512b02" stroke-width="3"/>
+  <line x1="375" y1="263" x2="311" y2="263" stroke="#173325" stroke-width="4"/>
+  <path d="M 308 263 l 12 -7 v 14 z" fill="#173325"/>
+  <text x="344" y="250" text-anchor="middle" fill="#173325" font-family="Arial,sans-serif" font-size="17" font-weight="bold">0,18 m · +Z local</text>
+  <text x="400" y="349" text-anchor="middle" fill="#17252d" font-family="Arial,sans-serif" font-size="17">Cube Spawn</text>
+  <text x="292" y="349" text-anchor="middle" fill="#173325" font-family="Arial,sans-serif" font-size="17" font-weight="bold">Place Target</text>
+  <text x="400" y="420" text-anchor="middle" fill="#d7e8ec" font-family="Arial,sans-serif" font-size="16">Coordenadas locales medidas en Unity · disco verde trigger sin obstáculo físico</text>
+</svg>

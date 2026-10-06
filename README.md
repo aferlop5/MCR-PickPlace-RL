@@ -1,8 +1,8 @@
 # PickPlaceRL
 
-Proyecto de Unity 6.3 LTS para aprender a manipular un cubo con un Franka FR3 y ML-Agents. La meta final es recoger el cubo y depositarlo en una zona objetivo. El trabajo actual prepara **Reach** y **Lift** con una política PPO compartida entre varias arenas.
+Proyecto de Unity 6.3 LTS para manipular un cubo con un Franka FR3 y ML-Agents. V2 documenta el resultado de **Reach** con cubo fijo. V3 añade un entorno separado para aprender **pick and place**; sus resultados de aprendizaje aún no están demostrados.
 
-## Situación actual
+## V2 - Reach: situación y resultado histórico
 
 - `Assets/Scenes/SampleScene.unity` contiene el robot `fr3`, la mesa `Table` y el cubo `TestObject`. El Franka tiene siete articulaciones y pinza física de dos dedos.
 - `RobotPickSequence.cs` conserva las posturas calibradas Home, Pre-Pick y Pick. Según la prueba manual del proyecto, permite agarrar y levantar físicamente el cubo. La secuencia no incluye una fase de depositarlo en otro lugar; no se han cambiado esas posturas, el URDF, los colliders, las masas ni el agarre.
@@ -151,7 +151,7 @@ En esa copia Unity emitió una excepción de su propio `UnityEditor.Search.Searc
 | `scripts/setup_training_env.ps1`, `scripts/train.ps1` | Instalación reproducible y lanzamiento protegido por Run ID. |
 | `tools/check_training_environment.py`, `tools/export_tensorboard_csv.py` | Comprobación de dependencias y exportación de métricas. |
 
-El proyecto aún no contiene un destino de colocación. Reach con cubo fijo muestra éxito sostenido en el run local `franka_reach_v2`; faltan Lift, generalización a posiciones nuevas y la comparación del throughput PPO conectado de las cinco configuraciones antes de concluir cuál es la más rápida de extremo a extremo.
+En V2 no hay un destino de colocación. Reach con cubo fijo muestra éxito sostenido en el run local `franka_reach_v2`; el experimento V3 se documenta al final de este archivo.
 
 ## Preparar y comprobar el entorno de forma reproducible
 
@@ -293,6 +293,152 @@ Tras el timeout, ML-Agents intenta reiniciar el worker y en la comprobación de 
 - **Al cambiar de ventana se detiene:** comprueba las dos opciones de Run In Background, que el Editor no esté pausado y que Windows no haya suspendido la sesión.
 - **TensorBoard no puede usar 6006:** el puerto está reservado por Windows en este equipo; usa `--port 6007`, que se verificó con HTTP 200.
 
-## Próximos pasos
+## Plan histórico tras V2
 
-Reach con cubo fijo ya presenta varias ventanas con `Franka/MinimumDistance` baja y `Franka/Success = 1`; conserva el checkpoint `v2` antes de cambiar de etapa. Para Lift, crea un Run ID nuevo inicializado desde `franka_reach_v2`, cambia `stage = Lift` y `trainingRunName` en la escena, conserva el agarre físico y vigila `Franka/MaximumHeight` frente a `targetHeight = 0.15 m`. Una vez Lift sea estable, activa `randomizeCube` con `cubeRandomXZ = 0.03 m` y aumenta el rango progresivamente; los desplazamientos X/Z de cada episodio quedan en `episodes.csv`. La tarea de transportar y depositar el cubo todavía no está implementada.
+Reach con cubo fijo ya presenta varias ventanas con `Franka/MinimumDistance` baja y `Franka/Success = 1`. Las ideas de inicializar Lift desde V2 y randomizar el cubo pertenecen a ese plan histórico. El run anterior `franka_pickplace_v3` se conserva con su base aleatoria y 35 observaciones; la variante actual empieza un run independiente con base fija.
+
+## V3 - Pick and Place
+
+### Diagnóstico que motiva Lift36
+
+En el run anterior `franka_pickplace_v3_fixed30`, el análisis de 673 episodios terminados mostró 669 `timeout`; en los últimos 100, Reach fue 99/100 y `was_grasped` 97/100, pero Lift fue **0/100**. La máxima elevación del cubo de esos últimos 100 episodios fue 0.0239 m y el máximo en los 673 fue 0.0553 m. Hubo aproximadamente 121 transiciones de cierre y 121 de apertura por episodio de 2500 acciones. `was_grasped` era entonces un contacto bilateral instantáneo: no probaba agarre sostenido. La recompensa media reciente, aproximadamente 0.65, podía subir sin completar Lift. Los CSV de `fixed30` se conservan para comparar con el nuevo run.
+
+Lift36 registró la duración del contacto y la altura del cubo **mientras** había contacto bilateral. Sus resultados y su checkpoint se conservan; la variante Safe50 añade una medida cinemática y regularización suave, descritas al final de este documento.
+
+V3 usa `Assets/Scenes/PickPlaceV3.unity`, el prefab autocontenido `Assets/Prefabs/TrainingArenaV3.prefab`, el agente `FrankaPickPlaceAgentV3` y una sola política, **`FrankaPickPlaceV3`**. El run actual se llama **`franka_pickplace_v3_safe50`**. Carga inicialmente los pesos del checkpoint `franka_pickplace_v3_lift36` sin modificar ese run. Se conservan los resultados de `franka_reach_v2`, `franka_pickplace_v3`, `franka_pickplace_v3_fixed30` y `franka_pickplace_v3_lift36`. Los pesos de `franka_pickplace_v3` no son compatibles con las 33 observaciones actuales. Todavía no hay evidencia de que una política haya aprendido a colocar el cubo.
+
+El cubo restaura en cada episodio su posición y rotación locales del prefab (aproximadamente `(-0.40, 0.10, 0)` antes de asentarse), con velocidades cero. No se randomiza. La raíz del Franka vuelve **siempre** a `(0.40, 0.05, 0)` en coordenadas locales de la arena mediante `ArticulationBody.TeleportRoot`, sin variación de X, Y, Z ni rotación. Se restauran Home, drives, velocidades articulares y pinza abierta. El agente deja cinco llamadas de acción para asentamiento físico antes de medir las distancias iniciales. Los offsets X/Z siguen en los CSV por compatibilidad del esquema, pero valen siempre cero en este run.
+
+`PlaceTarget` es un disco verde, fino, con `Collider.isTrigger`, que no forma un obstáculo físico. Su centro está **0.18 m en +Z local** respecto al cubo: la izquierda del Franka mirando hacia el cubo, elegida para V3. Está sobre la mesa. El radio de aceptación del centro del cubo es 0.04 m; el disco visual tiene 0.08 m de diámetro. Las arenas están separadas 5 m y el spawner crea una cuadrícula de **10 × 5 = 50 desde el primer Play**, con `timeScale = 1` y `Run In Background` activo.
+
+![Vista superior medida de una arena V3](docs/v3_target_layout.svg)
+
+### Observaciones y acciones
+
+Hay **33 observaciones** vectoriales en este orden. Se quitaron las dos observaciones constantes del offset de base:
+
+| Índices | Contenido |
+| --- | --- |
+| 0–6 | Ángulos de `link1` a `link7`, normalizados con los límites de cada drive |
+| 7–13 | Velocidades articulares de `link1` a `link7`, divididas por `jointSpeed` y recortadas a [−1, 1] |
+| 14–16 | TCP → cubo, X/Y/Z locales de la arena, en metros |
+| 17–19 | Cubo → target, X/Y/Z locales, en metros |
+| 20 | Altura del cubo sobre su posición asentada inicial, en metros |
+| 21 | Apertura de pinza normalizada [0, 1] |
+| 22–24 | Velocidad lineal del cubo, X/Y/Z locales, en m/s |
+| 25–27 | Velocidad angular del cubo, X/Y/Z locales, en rad/s |
+| 28–32 | Fase `Reach, Grasp, Lift, Transport, Place` en one-hot |
+
+Las **8 acciones continuas** son incrementos del target de `link1` a `link7` (0–6), limitados por `ArticulationDrive` y `jointSpeed = 35°/s`; el índice 7 cierra la pinza con valor ≤−0.25, la abre con valor ≥+0.25 y conserva la orden anterior entre ambos umbrales. Esta histéresis reduce los cambios de sentido observados en `fixed30` sin alterar las 33 observaciones ni las 8 acciones. `DecisionRequester` pide una decisión cada cinco pasos físicos y repite acciones entre decisiones. En modo Heuristic sin Python: `1/2`, `3/4`, `5/6`, `Q/E`, `A/D`, `Z/C`, `R/F` controlan los siete joints y **Espacio** cierra la pinza. Para intentarlo manualmente, usa una arena, pulsa Play y enfoca la vista Game.
+
+### Secuencia, recompensa y éxito
+
+El episodio dura como máximo **2500 llamadas de acción**. Cada paso cuesta −0.0005. `Reach` recompensa `2 × (distancia TCP-cubo anterior − actual)` y da +0.35 una vez al entrar a 0.07 m. Un cierre cerca del cubo (`≤0.09 m`) cuenta como intento; `Grasp` exige **cinco llamadas de acción consecutivas** con pinza cerrada, contacto de ambos dedos y TCP próximo al cubo, y entonces da +0.6. `Lift` recompensa el aumento de altura mientras ambos dedos lo sujetan, penaliza el descenso y da +2 al superar el objetivo de la lección. En las lecciones de 5, 10 y 20 cm, ese hito termina el episodio con +3 adicionales y razón `curriculum_lift_success`; la lección final exige **0.30 m** y continúa con Transport y Place. `Transport` solo comienza tras Lift: recompensa `3 ×` el progreso horizontal del cubo al target mientras sigue sujeto y elevado, penaliza alejarse y evita premiar repetidamente la misma distancia tras una oscilación. Entrar en el target da +0.6; bajar cerca de la mesa, +0.25; abrir allí la pinza **despacio y a altura de mesa**, +0.5; cada nueva racha máxima de decisiones estables, +0.02; completar Place, +10. Caída, salida de mesa o estado inválido terminan con −1.
+
+El éxito final de Pick and Place exige Reach, Grasp, **Lift físico de al menos 0.30 m**, entrada al target y liberación allí. Después el centro del cubo debe estar a ≤0.04 m horizontal del target, a ≤0.025 m de la altura de reposo, con pinza abierta, velocidad lineal ≤0.04 m/s y angular ≤0.5 rad/s, durante **12 decisiones consecutivas**. Empujarlo o deslizarlo sin levantarlo no satisface el criterio. Las razones terminales incluyen `place_success`, `curriculum_lift_success`, `timeout`, `cube_fell`, `cube_out_of_bounds`, `invalid_robot_state` y `manual_stop`.
+
+### PPO y comandos
+
+`trainer_config_v3_safe50.yaml` usa PPO con lote 512, búfer **20480**, learning rate 0.0003, red **256 × 2**, horizonte **256**, límite **5 millones** de pasos, resumen cada 10000 y checkpoint cada 250000. El parámetro de entorno `lift_goal_m` mantiene las lecciones **0.05 → 0.10 → 0.20 → 0.30 m**. Las tres primeras avanzan cuando, tras al menos 100 episodios, la recompensa media suavizada supera 2.0; el bono de +3 solo se obtiene al levantar físicamente hasta el objetivo. La lección final vuelve a la tarea completa de recoger, trasladar y dejar. Unity lee el objetivo al inicio de cada episodio, por lo que algunas arenas pueden terminar un episodio anterior después del cambio de lección. `engine_settings.time_scale = 1`.
+
+Abre y guarda `PickPlaceV3.unity` en Unity. En PowerShell, desde la raíz del proyecto:
+
+```powershell
+.\scripts\train_v3.ps1
+```
+
+El script comprueba el entorno Python, la escena con **50 arenas**, el config, el Run ID y los resultados; muestra rutas y arenas esperadas. En el primer arranque añade `--initialize-from=franka_pickplace_v3_lift36` y requiere su `checkpoint.pt`; conserva las 33 observaciones y 8 acciones. Cuando aparezca `Listening on port 5004`, pulsa **Play** en Unity. Para parar: **Ctrl+C una sola vez** en la terminal del entrenador, espera a que guarde y vuelva el prompt; después detén Play. Para continuar exactamente el nuevo run, sin volver a inicializar desde `lift36`:
+
+```powershell
+.\scripts\train_v3.ps1 -Resume
+```
+
+`-Resume` exige `results/franka_pickplace_v3_safe50/FrankaPickPlaceV3/checkpoint.pt`. El script rechaza los Run ID anteriores `franka_pickplace_v3`, `franka_pickplace_v3_fixed30` y `franka_pickplace_v3_lift36` para protegerlos. Para otro Run ID nuevo, cambia primero y guarda `trainingRunName` del spawner. `-Force` solo se acepta explícitamente y sobrescribe resultados de ese Run ID; no sirve para continuar.
+
+En otra terminal, TensorBoard usa **6007** porque 6006 está ocupado:
+
+```powershell
+.\.venv\Scripts\tensorboard.exe --logdir .\results --port 6007
+.\.venv\Scripts\python.exe .\tools\export_tensorboard_csv.py --run-id franka_pickplace_v3_safe50
+.\.venv\Scripts\python.exe .\tools\validate_training_logs_v3.py --run-id franka_pickplace_v3_safe50 --expected-arenas 50
+.\.venv\Scripts\python.exe .\tools\diagnose_lift_v3.py --run-id franka_pickplace_v3_safe50 --last 100
+```
+
+Abre [http://localhost:6007](http://localhost:6007). El exportador vuelca los scalar tags a `TrainingLogs/franka_pickplace_v3_safe50/tensorboard_metrics.csv` sin borrar los event files. TensorBoard recibe `Environment/Cumulative Reward`, `Environment/Episode Length` y las series de éxito, agarre, elevación y regularización detalladas más abajo. Compara Lift con el objetivo actual de la lección; un Reach alto con poco agarre sostenido apunta al contacto o la pinza.
+
+### CSV V3
+
+El logger compartido crea `TrainingLogs/<trainingRunName>/episodes.csv`: una fila por episodio y arena, `arena_id` de **0 a 49**, con `session_id` distinto cada entrada en Play. Incluye timestamp, run, episodio local/global, pasos, recompensa, éxito, razón terminal, arenas y escala temporal; offsets X/Z de la base —**ambos cero en la variante actual**— y coordenadas locales X/Y/Z efectivas de esa base; posición local X/Y/Z del spawn fijo del cubo y del target; distancias TCP-cubo inicial/mínima/final; altura inicial, máxima elevación y altura final; offset local X/Z del target; distancias cubo-target inicial/mínima/final; flags de cada fase; intentos de cerrar/abrir; pasos de los primeros hitos; decisiones estables; velocidades finales. Así cada fila contiene las posiciones necesarias para reconstruir el escenario sin depender de una versión futura del prefab. `cube_initial_height_m` es la Y local del centro del cubo **después del asentamiento**, mientras `cube_spawn_local_y_m` es la Y fija antes de asentarse; `maximum_cube_height_m` es la elevación sobre la primera.
+
+Columnas de `episodes.csv`, en orden por grupos:
+
+| Grupo | Columnas exactas |
+| --- | --- |
+| Identidad | `timestamp_utc`, `session_id`, `run_name`, `arena_id`, `arena_episode`, `global_episode`, `episode_steps`, `cumulative_reward`, `success`, `terminal_reason`, `number_of_arenas`, `time_scale` |
+| Posición | `robot_base_offset_x_m`, `robot_base_offset_z_m`, `robot_base_local_x_m`, `robot_base_local_y_m`, `robot_base_local_z_m`, `cube_spawn_local_x_m`, `cube_spawn_local_y_m`, `cube_spawn_local_z_m`, `target_local_x_m`, `target_local_y_m`, `target_local_z_m` |
+| Distancia y altura | `initial_tcp_cube_distance_m`, `minimum_tcp_cube_distance_m`, `final_tcp_cube_distance_m`, `cube_initial_height_m`, `maximum_cube_height_m`, `final_cube_height_m`, `target_offset_x_m`, `target_offset_z_m`, `initial_cube_target_distance_m`, `minimum_cube_target_distance_m`, `final_cube_target_distance_m` |
+| Fases | `reached_cube`, `grasp_attempted`, `was_grasped`, `was_lifted`, `entered_target`, `released_in_target`, `placed_successfully` |
+| Control | `gripper_close_attempts`, `gripper_open_attempts`, `step_reached_cube`, `step_first_grasp`, `step_first_lift`, `step_entered_target`, `step_success`, `stable_target_decisions`, `final_cube_linear_speed`, `final_cube_angular_speed` |
+| Diagnóstico Lift36 | `lift_goal_m`, `bilateral_contact_actions`, `holding_actions`, `max_consecutive_holding_actions`, `maximum_held_cube_height_m`, `near_joint_limit_actions`, `minimum_joint_limit_margin_deg` |
+| Diagnóstico Safe50 | `minimum_manipulability`, `mean_manipulability`, `final_manipulability`, `minimum_joint_limit_margin`, `maximum_joint_velocity`, `singularity_warning_count`, `joint_limit_warning_count` |
+
+`summary.csv` agrega cada 100 episodios terminados: recompensa y longitud medias; tasas Reach/Grasp/Lift/TargetEntry/Place; distancias y altura medias; pasos medios hasta Reach, Lift y Place **solo entre episodios que alcanzaron ese hito**. `reach_samples`, `lift_samples` y `place_samples` explicitan esos denominadores. La ventana parcial se escribe al parar Play. `manual_stop` queda en `episodes.csv` pero no entra en las tasas. `steps.csv` está **desactivado** por defecto; al activar `detailedStepLogging`, registra cada 10 decisiones por defecto, con fase, distancias, altura, recompensa, offsets y ocho acciones. Los decimales CSV usan `InvariantCulture`.
+
+Columnas de `summary.csv`: `timestamp_utc`, `session_id`, `run_name`, `global_episode`, `episodes_in_window`, `mean_reward`, `reach_rate`, `grasp_rate`, `lift_rate`, `target_entry_rate`, `place_success_rate`, `mean_episode_length`, `mean_min_tcp_cube_distance`, `mean_max_cube_height`, `mean_min_cube_target_distance`, `mean_final_cube_target_distance`, `mean_steps_to_reach`, `mean_steps_to_lift`, `mean_steps_to_place`, `reach_samples`, `lift_samples`, `place_samples`, `number_of_arenas`, `time_scale`; se añaden las medias de `lift_goal_m`, contacto bilateral, acciones sujetando, racha máxima de agarre, altura mientras se sujeta, acciones cerca de límites, margen mínimo articular, y en Safe50 `mean_minimum_manipulability`, `mean_minimum_joint_limit_margin`, `mean_maximum_joint_velocity`.
+
+La comprobación mínima actual está en **Tools → PickPlaceRL → V3 → Comprobación corta de 50 arenas**: compila, entra en Play tres segundos, valida 50 agentes, IDs 0–49, referencias locales y CSV, y restaura la escena. El benchmark **1-4-8-16-24-36** y la prueba de dos arenas corresponden a Lift36; sus resultados históricos se conservan más abajo. La comprobación corta valida la infraestructura, no el aprendizaje ni el rendimiento de PPO.
+
+El benchmark Lift36 del 6 de octubre de 2026 compiló en Unity 6000.3.25f1 y probó cada tamaño durante 15 s reales a `timeScale = 1`, sin conectar PPO. Los seis escenarios acabaron estables, sin errores del agente y con referencias locales válidas. La excepción conocida de `UnityEditor.Search.SearchDatabase` apareció una vez por escenario y se contabilizó aparte. Cada timeout de la tabla es **forzado por `MaxStep = 100` del benchmark**, no indica fallo de aprendizaje. Los CSV de los seis escenarios pasaron `validate_training_logs_v3.py` y se copiaron a `TrainingLogs/v3_lift36_arena_benchmark_<N>/`.
+
+| Arenas | Acciones de agente/s | Episodios/s | Timeouts forzados | Estable |
+| ---: | ---: | ---: | ---: | :---: |
+| 1 | 49.266 | 0.467 | 7 | Sí |
+| 4 | 197.594 | 1.867 | 28 | Sí |
+| 8 | 394.110 | 3.733 | 56 | Sí |
+| 16 | 791.446 | 7.466 | 112 | Sí |
+| 24 | 1182.322 | 11.199 | 168 | Sí |
+| 36 | **1780.795** | **16.800** | 252 | **Sí** |
+
+La subida de 24 a 36 mantuvo unas 49 llamadas de acción por segundo y arena en esta prueba de infraestructura. No mide la velocidad de PPO, el uso de GPU ni la tasa de éxito de Pick and Place. El entrenamiento real debe comprobar esos datos junto con `holding_actions`, `maximum_held_cube_height_m` y `lift_rate`.
+
+En una copia temporal del proyecto, Unity 6000.3.25f1 compiló la primera versión V3 y verificó referencias internas con los cinco tamaños. **El siguiente benchmark, guardado en `TrainingLogs/v3_arena_benchmark.csv`, es histórico, previo a la base fija y al umbral de 0,30 m**; no describe el rendimiento ni valida Lift36. El benchmark Play Mode anterior del 6 de octubre de 2026, 15 s reales por tamaño a `timeScale = 1`, produjo:
+
+| Arenas | Episodios/s | Acciones de agente/s | Timeouts | Errores del agente | Estable |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 0.467 | 49.266 | 7 | 0 | Sí |
+| 4 | 1.867 | 197.862 | 28 | 0 | Sí |
+| 8 | 3.733 | 395.686 | 56 | 0 | Sí |
+| 16 | 7.466 | 790.355 | 112 | 0 | Sí |
+| 24 | 11.199 | 1187.130 | 168 | 0 | Sí |
+
+La excepción `UnityEditor.Search.SearchDatabase` del indexador del Editor apareció una vez por escenario y se contó aparte; no procede del agente. Los timeouts son esperados: el benchmark reduce `MaxStep` a 100 para provocar resets, mientras que la escena de entrenamiento conserva 2500. La columna `timeouts` se reconstruyó de los CSV de cada escenario, conservados en `TrainingLogs/v3_arena_benchmark_final_<N>/`, y el contador del benchmark queda implementado para las siguientes ejecuciones. El validador de CSV aceptó entonces los cinco runs, con IDs completos, offsets diferentes dentro del rango, offsets del target `(0, +0.18)` y ventanas de resumen. Para volver a validar esos CSV históricos con el validador actual, pasa `--base-limit-m 0.02`. La prueba detallada de dos arenas escribió `steps.csv` cada diez decisiones y también pasó. El benchmark no mide aprendizaje.
+
+El probe físico de Unity usó las posturas calibradas Pick y PrePick y un giro de −12° de `link1`: el TCP quedó a **0.0063 m** del cubo en Pick, **0.0245 m** de la pose elevada sobre el target y **0.0228 m** de la pose de colocación. Las articulaciones respetaron sus límites, el target estaba dentro de la mesa y era trigger. En una ejecución manual con física automática el cubo llegó a elevarse **0.465 m** y ambos sensores de dedos detectaron contacto simultáneo. Sin embargo, tres intentos de una secuencia manual completa tocaron el cubo pero no lo conservaron al levantarlo, y no consiguieron depositarlo: el agarre y la colocación de extremo a extremo quedan **pendientes de validación**. El criterio puro de éxito rechazó empujar sin Lift, lanzar a velocidad alta, no soltar y pinza cerrada; aceptó una colocación estable. Eso verifica la lógica de la condición, no una manipulación física completa.
+
+La conexión PPO de diagnóstico **de la versión anterior con base aleatoria** y 24 arenas durante 31.256 s de Play produjo **240 024 llamadas de acción** (7679.349/s), 96 episodios terminados y 24 `manual_stop` al cerrar Play. Se generó un checkpoint de un Run ID separado, `franka_pickplace_v3_final_smoke24`. Una segunda conexión de 10.117 s con `--resume` cargó los pesos **desde el paso 39 840**, produjo otras **90 744** llamadas de acción (8969.061/s) y 24 episodios terminados. Los CSV combinados tienen **168 filas de 24 arenas en dos sesiones** (120 timeouts y 48 `manual_stop`) y dos ventanas de resumen. Se exportaron **207 puntos escalares** de TensorBoard. La política breve no logró Grasp ni Lift y la recompensa media fue negativa: el smoke comprueba conexión, reanudación y registros, no aprendizaje. Los artefactos están en `TrainingLogs/franka_pickplace_v3_final_smoke24/` y `results/franka_pickplace_v3_final_smoke24/`. Después también se inició el run `franka_pickplace_v3` y se guardaron sus checkpoint y CSV; se conservan como histórico y **no deben reanudarse con la variante actual**. Más tarde `franka_pickplace_v3_fixed30` empezó desde cero y generó el checkpoint usado por Lift36. Solo para aquella prueba se usó una copia temporal del config con `max_steps = 100000`, `checkpoint_interval = 10000` y `summary_freq = 1000`; el config de producción Lift36 conserva los valores indicados arriba. El entrenador de diagnóstico se cortó desde una terminal no interactiva, por lo que `--resume` avisó que faltaba `training_status.json`; sí confirmó la carga del checkpoint y el paso. Para uso normal, interrumpe el entrenador interactivo con Ctrl+C y espera el guardado.
+
+## Evitación de singularidades en V3
+
+Una singularidad es una postura en la que ciertos movimientos del TCP resultan difíciles o imposibles aunque las articulaciones se muevan. Puede dejar el brazo estirado o con poca capacidad para corregir la pinza durante Grasp, Lift y Transport. **PPO sigue controlando directamente las siete articulaciones y la pinza**: esta variante no introduce IK, planificador cartesiano ni un solver que sustituya las acciones.
+
+`FrankaTcpManipulabilityV3` construye el Jacobiano geométrico **6×7** del TCP. Para cada articulación revoluta `i`, toma el origen `p_i` de `joint.transform.TransformPoint(joint.anchorPosition)` y el eje unitario `a_i` del eje X del anclaje, `(joint.transform.rotation * joint.anchorRotation) * Vector3.right`, ambos en coordenadas mundiales. Con el TCP en `p_tcp`, la columna es `[(a_i × (p_tcp − p_i))/0.5 m; a_i]`: tres velocidades lineales divididas por una longitud característica de 0.5 m y tres angulares. Unity define [`anchorPosition`](https://docs.unity3d.com/cn/6000.0/ScriptReference/ArticulationBody-anchorPosition.html) y [`anchorRotation`](https://docs.unity3d.com/cn/6000.0/ScriptReference/ArticulationBody-anchorRotation.html) en el espacio del cuerpo; la articulación revoluta gira sobre el eje X del anclaje, como indica el [manual de Unity](https://docs.unity3d.com/es/2020.1/Manual/class-ArticulationBody.html). Todos los ejes y puntos se expresan en mundo antes del producto vectorial.
+
+Se calcula `G = J Jᵀ + 10⁻⁸ I₆` y la medida **`w = exp(½ log det G)`**, evaluada mediante Cholesky como producto de sus seis diagonales. Es una versión regularizada y adimensional de la manipulabilidad de Yoshikawa; el término diagonal evita un determinante numéricamente inestable cerca de cero. Los buffers `J`, `G` y Cholesky se reservan una vez por agente; cada muestra usa los siete joints, sin LINQ, SVD ni matrices nuevas. Se mide **cada 5 decisiones** por defecto, aproximadamente cada 25 pasos físicos con `DecisionPeriod = 5`, y una vez más al terminar si hace falta registrar la postura final.
+
+La regularización usa estos valores iniciales, editables en el Inspector del agente:
+
+| Concepto | Inicio | Efecto |
+| --- | ---: | --- |
+| `manipulabilitySafeThreshold` | 0.10 | Sin penalización por encima |
+| `manipulabilityDangerThreshold` | 0.025 | Bajo este valor, la penalización sube gradualmente hasta el doble |
+| `singularityPenaltyWeight` | 0.00005 | Se resta solo en una muestra peligrosa; máximo 0.00010 por muestra |
+| `jointLimitSafeFraction` | 0.12 | Zona central sin penalización; se mide la distancia normalizada al límite más próximo |
+| `jointLimitPenaltyWeight` | 0.00001 | Máximo por acción cerca de un límite |
+| `jointVelocitySafeDegPerSec` | 52.5°/s | Sin penalización por debajo |
+| `jointVelocityPenaltyWeight` | 0.000005 | Máximo por acción si la velocidad supera mucho el umbral |
+
+Estas restas son secundarias frente a Reach, Grasp, Lift, Transport y Place: incluso en el peor caso sostenido, sus máximos suman menos de 0.05 en 2500 acciones, frente al premio único de +0.35 por Reach. Acercarse a un límite no termina el episodio. No se añadió la manipulabilidad como observación para poder iniciar Safe50 desde el checkpoint Lift36: siguen **33 observaciones y 8 acciones**.
+
+`episodes.csv` añade `minimum_manipulability`, `mean_manipulability`, `final_manipulability`, `minimum_joint_limit_margin` (grados), `maximum_joint_velocity` (grados/s), `singularity_warning_count` (muestras bajo 0.10) y `joint_limit_warning_count` (acciones bajo el margen normalizado 0.12). Si un episodio acaba antes de poder medir una magnitud, su celda queda vacía. `summary.csv` añade `mean_minimum_manipulability`, `mean_minimum_joint_limit_margin` y `mean_maximum_joint_velocity`. TensorBoard recibe una muestra agregada por episodio en `V3/MinimumManipulability`, `V3/MeanManipulability`, `V3/MinimumJointLimitMargin`, `V3/MaximumJointVelocity` y `V3/SingularityWarningRate`.
+
+Safe50 usa **50 arenas simultáneas**, distribuidas en 10 columnas y 5 filas, con 5 m de separación, `timeScale = 1`, base fija, cubo y target fijos, y `detailedStepLogging = false`. La comprobación corta en Unity instanció 50 agentes con IDs 0–49, referencias independientes y cero errores del agente; sus 150 filas CSV y el resumen pasaron el validador. La postura inicial dio una manipulabilidad media cercana a **0.590**, por encima del umbral seguro. Hubo una excepción del indexador de búsqueda del Editor (`UnityEditor.Search.SearchDatabase`), ajena al agente. Esta prueba **no mide throughput ni demuestra que 50 arenas sean más rápidas que 24**.

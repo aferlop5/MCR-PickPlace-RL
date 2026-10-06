@@ -206,7 +206,7 @@ Transform:
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.22, y: 1.68, z: -8.051}
+  m_LocalPosition: {x: 0.534, y: 0.856, z: -3.234}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -432,7 +432,75 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &2059135792
+--- !u!1001 &1460111227
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 781309311557990761, guid: 8015088dd42c89b43a6204cd7fc84f9e, type: 3}
+      propertyPath: m_Name
+      value: TrainingArenaV3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3929061568493660317, guid: 8015088dd42c89b43a6204cd7fc84f9e, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3929061568493660317, guid: 8015088dd42c89b43a6204cd7fc84f9e, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3929061568493660317, guid: 8015088dd42c89b43a6204cd7fc84f9e, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3929061568493660317, guid: 8015088dd42c89b43a6204cd7fc84f9e, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3929061568493660317, guid: 8015088dd42c89b43a6204cd7fc84f9e, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3929061568493660317, guid: 8015088dd42c89b43a6204cd7fc84f9e, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3929061568493660317, guid: 8015088dd42c89b43a6204cd7fc84f9e, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3929061568493660317, guid: 8015088dd42c89b43a6204cd7fc84f9e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3929061568493660317, guid: 8015088dd42c89b43a6204cd7fc84f9e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3929061568493660317, guid: 8015088dd42c89b43a6204cd7fc84f9e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 8015088dd42c89b43a6204cd7fc84f9e, type: 3}
+--- !u!114 &1460111228 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5112263745190724684, guid: 8015088dd42c89b43a6204cd7fc84f9e, type: 3}
+  m_PrefabInstance: {fileID: 1460111227}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de3a8feadc0ed8549a7c0af30030fcde, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TrainingArenaReferencesV3
+--- !u!1 &2043972636
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -440,44 +508,44 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 2059135794}
-  - component: {fileID: 2059135793}
+  - component: {fileID: 2043972638}
+  - component: {fileID: 2043972637}
   m_Layer: 0
-  m_Name: TrainingArenaSpawner
+  m_Name: TrainingArenaSpawnerV3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &2059135793
+--- !u!114 &2043972637
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2059135792}
+  m_GameObject: {fileID: 2043972636}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 60236939388997f449fe10e2d23d75d1, type: 3}
+  m_Script: {fileID: 11500000, guid: 34bf29d6f6ece1e42bc32173bafc485a, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TrainingArenaSpawner
-  firstArena: {fileID: 2172336009616711235}
-  numberOfArenas: 16
-  columns: 4
+  m_EditorClassIdentifier: Assembly-CSharp::TrainingArenaSpawnerV3
+  firstArena: {fileID: 1460111228}
+  numberOfArenas: 50
+  columns: 10
   spacing: 5
   timeScale: 1
-  trainingRunName: franka_reach_v2
+  trainingRunName: franka_pickplace_v3_safe50
   summaryWindowEpisodes: 100
   flushEveryEpisodes: 32
   detailedStepLogging: 0
   stepLogEveryNDecisions: 10
---- !u!4 &2059135794
+--- !u!4 &2043972638
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2059135792}
+  m_GameObject: {fileID: 2043972636}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -486,74 +554,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &2172336009616711234
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 2701784291303091420, guid: f57d45d839cd45140a4cd75e6317afe6, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2701784291303091420, guid: f57d45d839cd45140a4cd75e6317afe6, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2701784291303091420, guid: f57d45d839cd45140a4cd75e6317afe6, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2701784291303091420, guid: f57d45d839cd45140a4cd75e6317afe6, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2701784291303091420, guid: f57d45d839cd45140a4cd75e6317afe6, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2701784291303091420, guid: f57d45d839cd45140a4cd75e6317afe6, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2701784291303091420, guid: f57d45d839cd45140a4cd75e6317afe6, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2701784291303091420, guid: f57d45d839cd45140a4cd75e6317afe6, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2701784291303091420, guid: f57d45d839cd45140a4cd75e6317afe6, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2701784291303091420, guid: f57d45d839cd45140a4cd75e6317afe6, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7428485108088702397, guid: f57d45d839cd45140a4cd75e6317afe6, type: 3}
-      propertyPath: m_Name
-      value: TrainingArena
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: f57d45d839cd45140a4cd75e6317afe6, type: 3}
---- !u!114 &2172336009616711235 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 5993547082646845796, guid: f57d45d839cd45140a4cd75e6317afe6, type: 3}
-  m_PrefabInstance: {fileID: 2172336009616711234}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8d0be22b06ef69542830a3482c4a7c54, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TrainingArenaReferences
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -561,5 +561,5 @@ SceneRoots:
   - {fileID: 330585546}
   - {fileID: 410087041}
   - {fileID: 832575519}
-  - {fileID: 2172336009616711234}
-  - {fileID: 2059135794}
+  - {fileID: 1460111227}
+  - {fileID: 2043972638}
