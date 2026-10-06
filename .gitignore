@@ -107,3 +107,14 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# Python virtual environment
+venv/
+*.pyc
+__pycache__/
+
+# ML-Agents training results
+results/
+
+# Upgrade logs
+UpgradeLog.htm
