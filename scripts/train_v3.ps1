@@ -58,14 +58,16 @@ if ($prefabText -notmatch '(?m)^\s*m_BehaviorName:\s*FrankaPickPlaceV3\s*$' -or
     $prefabText -notmatch '(?m)^\s*m_NumContinuousActions:\s*8\s*$' -or
     $prefabText -notmatch '(?m)^\s*m_Model:\s*\{fileID: 0\}\s*$' -or
     $prefabText -notmatch '(?m)^\s*m_BehaviorType:\s*0\s*$' -or
+    $prefabText -notmatch '(?m)^\s*MaxStep:\s*1000\s*$' -or
     $prefabText -notmatch '(?m)^\s*liftThreshold:\s*0\.3\s*$' -or
     $prefabText -match '(?m)^\s*randomizeRobotBase:\s*1\s*$') {
-    throw 'TrainingArenaV3 debe usar FrankaPickPlaceV3, 33 observaciones, Lift 0.30 m, base fija, 8 acciones, Behavior Type Default y ningún modelo.'
+    throw 'TrainingArenaV3 debe usar FrankaPickPlaceV3, 33 observaciones, 8 acciones, base fija, MaxStep 1000, Behavior Type Default y ningún modelo.'
 }
 $configText = Get-Content -LiteralPath $configuration -Raw
 if ($configText -notmatch '(?m)^\s{2}FrankaPickPlaceV3:\s*$' -or
-    $configText -notmatch '(?m)^\s{2}time_scale:\s*1\s*$') {
-    throw 'trainer_config_v3_safe50.yaml debe contener FrankaPickPlaceV3 y time_scale 1.'
+    $configText -notmatch '(?m)^\s{2}time_scale:\s*1\s*$' -or
+    $configText -match '(?m)^\s*init_path\s*:') {
+    throw 'trainer_config_v3_safe50.yaml debe contener FrankaPickPlaceV3, time_scale 1 y ningún init_path.'
 }
 if ($Resume) {
     $checkpoint = Join-Path $runDirectory 'FrankaPickPlaceV3\checkpoint.pt'
@@ -73,11 +75,6 @@ if ($Resume) {
 } elseif ((Test-Path -LiteralPath $runDirectory) -and !$Force) {
     throw "Ya existe $runDirectory. Usa -Resume o un Run ID nuevo; -Force sobrescribe deliberadamente."
 }
-$sourceCheckpoint = Join-Path $projectRoot 'results\franka_pickplace_v3_lift36\FrankaPickPlaceV3\checkpoint.pt'
-if (!$Resume -and !(Test-Path -LiteralPath $sourceCheckpoint)) {
-    throw "Falta el checkpoint de partida: $sourceCheckpoint"
-}
-
 Write-Host "Run ID: $RunId"
 Write-Host 'Behavior: FrankaPickPlaceV3'
 Write-Host "Arenas esperadas: $arenas"
@@ -86,7 +83,6 @@ Write-Host "Resultados: $runDirectory"
 Write-Host "CSV: $logsDirectory"
 $arguments = @($configuration, "--run-id=$RunId", "--timeout-wait=$TimeoutWait")
 if ($Resume) { $arguments += '--resume' }
-else { $arguments += '--initialize-from=franka_pickplace_v3_lift36' }
 if ($Force) {
     Write-Warning "-Force sobrescribe results/$RunId; TrainingLogs no se borra."
     $arguments += '--force'

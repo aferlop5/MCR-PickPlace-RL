@@ -534,7 +534,7 @@ MonoBehaviour:
   columns: 10
   spacing: 5
   timeScale: 1
-  trainingRunName: franka_pickplace_v3_safe50
+  trainingRunName: franka_pickplace_v3_prism_v3
   summaryWindowEpisodes: 100
   flushEveryEpisodes: 32
   detailedStepLogging: 0
@@ -563,3 +563,5 @@ SceneRoots:
   - {fileID: 832575519}
   - {fileID: 1460111227}
   - {fileID: 2043972638}
+
+

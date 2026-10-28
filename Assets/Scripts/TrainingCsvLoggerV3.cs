@@ -16,12 +16,18 @@ public static class TrainingCsvLoggerV3
         public string terminalReason;
         public float robotBaseOffsetX, robotBaseOffsetZ;
         public Vector3 robotBaseLocalPosition, cubeSpawnLocalPosition, targetLocalPosition;
+        public float initialObjectYawDeg;
+        public int orientationCurriculumLevel, graspToFirstPhysicalLossSteps;
+        public float orientationYawMinDeg, orientationYawMaxDeg;
+        public string orientationSamplingMode;
+        public float orientationFocusProbability;
+        public float alignmentAtFirstGrasp, rewardAlignment;
         public float initialTcpCubeDistance, minimumTcpCubeDistance, finalTcpCubeDistance;
         public float cubeInitialHeight, maximumCubeHeight, finalCubeHeight;
         public float targetOffsetX, targetOffsetZ;
         public float initialCubeTargetDistance, minimumCubeTargetDistance, finalCubeTargetDistance;
         public bool reachedCube, graspAttempted, wasGrasped, wasLifted, enteredTarget;
-        public bool releasedInTarget, placedSuccessfully;
+        public bool releasedInTarget, placedSuccessfully, controlledPlaceSuccess;
         public int gripperCloseAttempts, gripperOpenAttempts;
         public int stepReachedCube, stepFirstGrasp, stepFirstLift, stepEnteredTarget, stepSuccess;
         public int stableTargetDecisions;
@@ -31,6 +37,64 @@ public static class TrainingCsvLoggerV3
         public float minimumManipulability, meanManipulability, finalManipulability;
         public float minimumJointLimitMargin, maximumJointVelocity;
         public int singularityWarningCount, jointLimitWarningCount;
+        public int stepFirstGraspAttempt, stepFirstBilateralContact, stepFirstLiftMotion, stepMaxHeight;
+        public int graspAttemptCount, bilateralContactDecisions, longestBilateralContactDecisions;
+        public int leftContactDecisions, rightContactDecisions, leftOnlyContactDecisions, rightOnlyContactDecisions;
+        public int retentionDecisions, longestRetentionDecisions, graspLostCount;
+        public float openingAtReach, openingAtGrasp, openingAtMaxHeight;
+        public float distanceAtReach, distanceAtGrasp, distanceAtMaxHeight;
+        public float heightAtReach, heightAtGrasp, netCubeHeightGain;
+        public float maximumCubeVerticalVelocity, meanPositiveCubeVerticalVelocity, liftProgressRewardTotal;
+        public float minimumJointLimitMarginNormalized;
+        public int jointClosestToLimit;
+        public float[] jointMinimumMargins, jointMaximumVelocities, meanAbsActions;
+        public float meanAbsJointAction, maxAbsJointAction, jointActionSaturationRate;
+        public float gripperCloseActionRate, gripperOpenActionRate;
+        public float manipulabilityAtReach, manipulabilityAtGrasp, manipulabilityAtMaxHeight;
+        public float rewardReach, rewardGrasp, rewardLift, rewardTransport, rewardPlace;
+        public float rewardSingularity, rewardJointLimit, rewardVelocity, rewardTime, rewardFailure, rewardTimeout;
+        public float rewardPositive, rewardPenalty, rewardAccounted;
+        public string curriculumLesson;
+        public EpisodeEvent[] events;
+        public int eventCount;
+        public float postGraspOpenActionRate, postGraspCloseActionRate;
+        public float meanGripperActionAfterGrasp, maxGripperActionAfterGrasp, minGripperActionAfterGrasp;
+        public int stepFirstGraspLoss, graspLossesAfterConfirmation;
+        public float heightAtFirstGraspLoss, openingAtFirstGraspLoss, distanceAtFirstGraspLoss;
+        public bool[] reachedLiftMilestone;
+        public int[] stepLiftMilestone;
+        public float rewardGraspLoss, episodeDurationSimSeconds, timeoutLimitSeconds;
+        public int episodeMaxStep;
+        public int stepTargetAligned, stepReleaseReady, stepRelease;
+        public bool targetAligned, releaseReadyReached, releasedCorrectly, releasedTooHigh;
+        public float horizontalAtAlignment, horizontalAtReady, horizontalAtRelease;
+        public float releaseHeightAtAlignment, releaseHeightAtRelease, verticalVelocityAtRelease;
+        public float gripperActionAtRelease, gripperOpeningAtRelease;
+        public float rewardPrePlace, rewardReleaseReady, rewardControlledRelease, rewardHighRelease;
+        public bool[] reachedPrePlaceMilestone;
+        public int[] stepPrePlaceMilestone;
+        public float minimumReleaseHeightWhileHeld, bestPrePlaceHeight;
+        public float rewardPrePlaceMilestones, rewardPhysicalPlace, rewardControlledPlace;
+        public int stepReleaseCommand, stepGraspLossForRelease, stepReleaseConfirmed;
+        public float releaseCommandHeight, graspLossHeightForRelease, releaseConfirmedHeight;
+        public float releaseCommandVerticalVelocity, graspLossVerticalVelocity;
+        public bool releaseWasContinuouslyHeldBeforeLoss;
+        public int stepPrePlaceEligible, retentionDecisionsAtTargetAlignment, retentionDecisionsAtPrePlaceEligible;
+        public bool prePlaceEligibleReached;
+        public float releaseHeightAtPrePlaceEligible, verticalVelocityAtPrePlaceEligible;
+    }
+
+    public struct EpisodeEvent
+    {
+        public string timestampUtc;
+        public string eventName;
+        public int episodeStep, jointClosestToLimit;
+        public float[] jointDegrees;
+        public float manipulability, minimumJointMargin, tcpCubeDistance;
+        public float cubeHeight, cubeVerticalVelocity, gripperOpening;
+        public float horizontalTargetDistance, releaseHeightAboveTarget, gripperAction;
+        public bool retentionState;
+        public int retentionStreakDecisions;
     }
 
     public struct Decision
@@ -58,7 +122,62 @@ public static class TrainingCsvLoggerV3
         "maximum_held_cube_height_m,near_joint_limit_actions,minimum_joint_limit_margin_deg," +
         "minimum_manipulability,mean_manipulability,final_manipulability," +
         "minimum_joint_limit_margin,maximum_joint_velocity," +
-        "singularity_warning_count,joint_limit_warning_count";
+        "singularity_warning_count,joint_limit_warning_count," +
+        "step_reach,step_first_grasp_attempt,step_first_bilateral_contact,step_grasp_confirmed," +
+        "step_first_lift_motion,step_max_height,step_lift_success,actions_after_reach,actions_after_grasp," +
+        "grasp_attempt_count,bilateral_contact_count,bilateral_contact_decisions,longest_bilateral_contact_decisions," +
+        "grasp_confirmed,gripper_opening_at_reach,gripper_opening_at_grasp,gripper_opening_at_max_height," +
+        "tcp_cube_distance_at_reach,tcp_cube_distance_at_grasp,tcp_cube_distance_at_max_height," +
+        "cube_height_at_reach_m,cube_height_at_grasp_m,maximum_cube_vertical_velocity_mps," +
+        "mean_positive_cube_vertical_velocity_mps,net_cube_height_gain_m,lift_progress_reward_total," +
+        "minimum_joint_limit_margin_normalized,joint_closest_to_limit," +
+        "joint1_min_margin,joint2_min_margin,joint3_min_margin,joint4_min_margin,joint5_min_margin,joint6_min_margin,joint7_min_margin," +
+        "joint1_max_abs_velocity,joint2_max_abs_velocity,joint3_max_abs_velocity,joint4_max_abs_velocity,joint5_max_abs_velocity,joint6_max_abs_velocity,joint7_max_abs_velocity," +
+        "mean_abs_joint_action,max_abs_joint_action,joint_action_saturation_rate,gripper_close_action_rate,gripper_open_action_rate," +
+        "mean_abs_action_joint1,mean_abs_action_joint2,mean_abs_action_joint3,mean_abs_action_joint4,mean_abs_action_joint5,mean_abs_action_joint6,mean_abs_action_joint7," +
+        "manipulability_at_reach,manipulability_at_grasp,manipulability_at_max_height," +
+        "reward_reach_total,reward_grasp_total,reward_lift_total,reward_transport_total,reward_place_total," +
+        "reward_singularity_penalty_total,reward_joint_limit_penalty_total,reward_velocity_penalty_total,reward_time_penalty_total," +
+        "reward_failure_penalty_total,reward_positive_total,reward_penalty_total,reward_accounted_total," +
+        "left_finger_contact_decisions,right_finger_contact_decisions,left_only_contact_decisions,right_only_contact_decisions," +
+        "grasp_retention_decisions,longest_grasp_retention_decisions,grasp_lost_count,curriculum_lesson," +
+        "gripper_open_action_rate_after_grasp,gripper_close_action_rate_after_grasp," +
+        "mean_gripper_action_after_grasp,max_gripper_action_after_grasp,min_gripper_action_after_grasp," +
+        "step_first_grasp_loss,cube_height_at_first_grasp_loss_m,gripper_opening_at_first_grasp_loss," +
+        "tcp_cube_distance_at_first_grasp_loss,grasp_losses_after_confirmation," +
+        "reached_lift_1cm,reached_lift_2cm,reached_lift_3cm,reached_lift_4cm,reached_lift_5cm," +
+        "step_lift_1cm,step_lift_2cm,step_lift_3cm,step_lift_4cm,step_lift_5cm," +
+        "reward_grasp_loss_penalty_total,episode_duration_sim_seconds,timeout_limit_seconds," +
+        "reward_timeout_penalty_total,episode_max_step," +
+        "step_target_aligned,step_release_ready,step_release," +
+        "target_aligned,release_ready_reached,released_correctly,released_too_high," +
+        "horizontal_distance_at_target_alignment_m,horizontal_distance_at_release_ready_m,horizontal_distance_at_release_m," +
+        "release_height_above_target_at_alignment_m,release_height_above_target_at_release_m," +
+        "cube_vertical_velocity_at_release_mps,gripper_action_at_release,gripper_opening_at_release," +
+        "reward_preplace_total,reward_release_ready_total,reward_controlled_release_total,reward_high_release_penalty_total," +
+        "reached_preplace_30cm,reached_preplace_25cm,reached_preplace_20cm,reached_preplace_15cm,reached_preplace_10cm,reached_preplace_5cm," +
+        "step_preplace_30cm,step_preplace_25cm,step_preplace_20cm,step_preplace_15cm,step_preplace_10cm,step_preplace_5cm," +
+        "place_success,controlled_place_success,minimum_release_height_while_held_m,best_preplace_height_m," +
+        "reward_preplace_milestones_total,reward_physical_place_total,reward_controlled_place_total," +
+        "step_release_command,step_grasp_loss_for_release,step_release_confirmed," +
+        "release_command_height_above_target_m,grasp_loss_height_above_target_m,release_confirmed_height_above_target_m," +
+        "cube_vertical_velocity_at_release_command_mps,cube_vertical_velocity_at_grasp_loss_mps," +
+        "release_was_continuously_held_before_loss," +
+        "preplace_30cm_before_grasp_loss,preplace_25cm_before_grasp_loss,preplace_20cm_before_grasp_loss," +
+        "preplace_15cm_before_grasp_loss,preplace_10cm_before_grasp_loss,preplace_5cm_before_grasp_loss," +
+        "step_preplace_eligible,preplace_eligible_reached,retention_decisions_at_target_alignment," +
+        "retention_decisions_at_preplace_eligible,release_height_at_preplace_eligible_m," +
+        "vertical_velocity_at_preplace_eligible_mps,initial_object_yaw_deg," +
+        "orientation_curriculum_level,orientation_yaw_min_deg,orientation_yaw_max_deg," +
+        "finger_short_axis_alignment_at_first_grasp,reward_alignment_total," +
+        "grasp_to_first_physical_loss_steps,orientation_sampling_mode,orientation_focus_probability";
+    private const string EventHeader =
+        "timestamp_utc,session_id,run_name,arena_id,global_episode,event,episode_step," +
+        "joint1_deg,joint2_deg,joint3_deg,joint4_deg,joint5_deg,joint6_deg,joint7_deg," +
+        "manipulability,minimum_joint_margin,joint_closest_to_limit,tcp_cube_distance," +
+        "cube_height,cube_vertical_velocity,gripper_opening," +
+        "horizontal_target_distance_m,release_height_above_target_m,gripper_action,retention_state," +
+        "retention_streak_decisions";
     private const string SummaryHeader =
         "timestamp_utc,session_id,run_name,global_episode,episodes_in_window,mean_reward,reach_rate,grasp_rate,lift_rate,target_entry_rate,place_success_rate," +
         "mean_episode_length,mean_min_tcp_cube_distance,mean_max_cube_height,mean_min_cube_target_distance,mean_final_cube_target_distance," +
@@ -66,7 +185,18 @@ public static class TrainingCsvLoggerV3
         "mean_lift_goal_m,mean_bilateral_contact_actions,mean_holding_actions," +
         "mean_max_consecutive_holding_actions,mean_maximum_held_cube_height_m," +
         "mean_near_joint_limit_actions,mean_minimum_joint_limit_margin_deg," +
-        "mean_minimum_manipulability,mean_minimum_joint_limit_margin,mean_maximum_joint_velocity";
+        "mean_minimum_manipulability,mean_minimum_joint_limit_margin,mean_maximum_joint_velocity," +
+        "lift_1cm_rate,lift_2cm_rate,lift_3cm_rate,lift_4cm_rate,lift_5cm_rate," +
+        "mean_longest_grasp_retention_decisions,mean_grasp_lost_count," +
+        "mean_gripper_open_action_rate_after_grasp,mean_reward_reach,mean_reward_grasp,mean_reward_lift," +
+        "mean_episode_duration_sim_seconds,timeout_rate," +
+        "target_aligned_rate,release_ready_rate,controlled_release_rate,high_release_rate," +
+        "mean_release_height_above_target_m,mean_horizontal_distance_at_release_m," +
+        "place_success_given_release_ready," +
+        "preplace_30cm_rate,preplace_25cm_rate,preplace_20cm_rate,preplace_15cm_rate,preplace_10cm_rate,preplace_5cm_rate," +
+        "controlled_place_success_rate,mean_best_preplace_height_m,controlled_place_given_release_ready_rate," +
+        "mean_release_command_height_above_target_m,mean_grasp_loss_height_above_target_m," +
+        "release_continuous_hold_rate";
     private const string StepHeader =
         "timestamp_utc,session_id,run_name,arena_id,episode,episode_step,phase,tcp_cube_distance,cube_target_distance,cube_height," +
         "instant_reward,cumulative_reward,gripper_opening,was_lifted,inside_target,robot_offset_x,robot_offset_z," +
@@ -74,7 +204,7 @@ public static class TrainingCsvLoggerV3
 
     private static readonly CultureInfo CsvCulture = CultureInfo.InvariantCulture;
     private static readonly HashSet<FrankaPickPlaceAgentV3> ActiveAgents = new HashSet<FrankaPickPlaceAgentV3>();
-    private static StreamWriter episodeWriter, summaryWriter, stepWriter;
+    private static StreamWriter episodeWriter, summaryWriter, stepWriter, eventWriter;
     private static string runName, sessionId;
     private static int arenaCount, globalEpisode, flushEveryEpisodes, sinceFlush;
     private static int summaryWindowEpisodes, stepLogEveryNDecisions;
@@ -86,6 +216,18 @@ public static class TrainingCsvLoggerV3
     private static float maxHeldHeightSum, nearLimitSum, minLimitMarginSum;
     private static double minManipulabilitySum, minMarginSum, maxVelocitySum;
     private static int manipEpisodeCount, marginEpisodeCount;
+    private static readonly int[] milestoneCounts = new int[5];
+    private static int timeoutCount, postGraspRateSamples;
+    private static double longestRetentionSum, graspLossSum, postGraspOpenRateSum;
+    private static double rewardReachSum, rewardGraspSum, rewardLiftSum, durationSum;
+    private static int targetAlignedCount, releaseReadyCount, controlledReleaseCount, highReleaseCount;
+    private static int releaseCount, placeGivenReadyCount;
+    private static double releaseHeightSum, releaseHorizontalSum;
+    private static readonly int[] prePlaceMilestoneCounts = new int[6];
+    private static int controlledPlaceCount, controlledPlaceGivenReadyCount, bestPrePlaceSamples;
+    private static double bestPrePlaceHeightSum;
+    private static int releaseCommandSamples, graspLossForReleaseSamples, continuousHoldReleaseCount;
+    private static double releaseCommandHeightSum, graspLossForReleaseHeightSum;
 
     public static bool DetailedStepLogging { get { return stepWriter != null; } }
     public static int StepLogEveryNDecisions { get { return stepLogEveryNDecisions; } }
@@ -112,6 +254,7 @@ public static class TrainingCsvLoggerV3
         globalEpisode = ReadLastGlobalEpisode(episodesPath);
         episodeWriter = OpenWriter(episodesPath, EpisodeHeader);
         summaryWriter = OpenWriter(Path.Combine(directory, "summary.csv"), SummaryHeader);
+        eventWriter = OpenWriter(Path.Combine(directory, "episode_events.csv"), EventHeader);
         if (detailedSteps) stepWriter = OpenWriter(Path.Combine(directory, "steps.csv"), StepHeader);
         Application.quitting += Close;
     }
@@ -129,7 +272,7 @@ public static class TrainingCsvLoggerV3
             timeScale = actualScale;
         }
         globalEpisode++;
-        episodeWriter.WriteLine(string.Join(",", new[] {
+        var line = new StringBuilder(string.Join(",", new[] {
             Timestamp(), sessionId, runName, Int(e.arenaId), Int(e.arenaEpisode), Int(globalEpisode),
             Int(e.steps), Number(e.reward), Bit(e.success), e.terminalReason,
             Int(arenaCount), Number(timeScale), Number(e.robotBaseOffsetX), Number(e.robotBaseOffsetZ),
@@ -153,6 +296,10 @@ public static class TrainingCsvLoggerV3
             Number(e.maximumJointVelocity), Int(e.singularityWarningCount),
             Int(e.jointLimitWarningCount)
         }));
+        AppendExtra(line, e);
+        episodeWriter.WriteLine(line.ToString());
+        for (int i = 0; e.events != null && i < e.eventCount; i++)
+            WriteEvent(e.arenaId, e.events[i]);
         if (e.terminalReason != "manual_stop")
         {
             windowCount++;
@@ -180,6 +327,56 @@ public static class TrainingCsvLoggerV3
                 marginEpisodeCount++;
             }
             maxVelocitySum += Finite(e.maximumJointVelocity);
+            for (int i = 0; i < milestoneCounts.Length; i++)
+                if (e.reachedLiftMilestone != null && i < e.reachedLiftMilestone.Length &&
+                    e.reachedLiftMilestone[i]) milestoneCounts[i]++;
+            longestRetentionSum += e.longestRetentionDecisions;
+            graspLossSum += e.graspLostCount;
+            if (IsFinite(e.postGraspOpenActionRate))
+            {
+                postGraspOpenRateSum += e.postGraspOpenActionRate;
+                postGraspRateSamples++;
+            }
+            rewardReachSum += Finite(e.rewardReach);
+            rewardGraspSum += Finite(e.rewardGrasp);
+            rewardLiftSum += Finite(e.rewardLift);
+            durationSum += Finite(e.episodeDurationSimSeconds);
+            if (e.targetAligned) targetAlignedCount++;
+            for (int i = 0; i < prePlaceMilestoneCounts.Length; i++)
+                if (e.reachedPrePlaceMilestone != null && i < e.reachedPrePlaceMilestone.Length &&
+                    e.reachedPrePlaceMilestone[i]) prePlaceMilestoneCounts[i]++;
+            if (e.releaseReadyReached) releaseReadyCount++;
+            if (e.releasedCorrectly) controlledReleaseCount++;
+            if (e.releasedTooHigh) highReleaseCount++;
+            if (e.placedSuccessfully && e.releaseReadyReached) placeGivenReadyCount++;
+            if (e.controlledPlaceSuccess)
+            {
+                controlledPlaceCount++;
+                if (e.releaseReadyReached) controlledPlaceGivenReadyCount++;
+            }
+            if (IsFinite(e.bestPrePlaceHeight))
+            {
+                bestPrePlaceHeightSum += e.bestPrePlaceHeight;
+                bestPrePlaceSamples++;
+            }
+            if (e.stepRelease >= 0)
+            {
+                releaseCount++;
+                releaseHeightSum += Finite(e.releaseHeightAtRelease);
+                releaseHorizontalSum += Finite(e.horizontalAtRelease);
+            }
+            if (e.stepReleaseCommand >= 0 && IsFinite(e.releaseCommandHeight))
+            {
+                releaseCommandSamples++;
+                releaseCommandHeightSum += e.releaseCommandHeight;
+                if (e.releaseWasContinuouslyHeldBeforeLoss) continuousHoldReleaseCount++;
+            }
+            if (e.stepGraspLossForRelease >= 0 && IsFinite(e.graspLossHeightForRelease))
+            {
+                graspLossForReleaseSamples++;
+                graspLossForReleaseHeightSum += e.graspLossHeightForRelease;
+            }
+            if (e.terminalReason == "timeout") timeoutCount++;
             if (e.reachedCube) { reachCount++; stepsReachSum += e.stepReachedCube; }
             if (e.wasGrasped) graspCount++;
             if (e.wasLifted) { liftCount++; stepsLiftSum += e.stepFirstLift; }
@@ -203,11 +400,196 @@ public static class TrainingCsvLoggerV3
         }));
     }
 
+    private static void AppendExtra(StringBuilder line, Episode e)
+    {
+        AppendOptionalInt(line, e.stepReachedCube);
+        AppendOptionalInt(line, e.stepFirstGraspAttempt);
+        AppendOptionalInt(line, e.stepFirstBilateralContact);
+        AppendOptionalInt(line, e.stepFirstGrasp);
+        AppendOptionalInt(line, e.stepFirstLiftMotion);
+        AppendOptionalInt(line, e.stepMaxHeight);
+        AppendOptionalInt(line, e.stepFirstLift);
+        AppendOptionalInt(line, e.stepReachedCube < 0 ? -1 : e.steps - e.stepReachedCube);
+        AppendOptionalInt(line, e.stepFirstGrasp < 0 ? -1 : e.steps - e.stepFirstGrasp);
+        Append(line, e.graspAttemptCount);
+        Append(line, e.bilateralContactActions);
+        Append(line, e.bilateralContactDecisions);
+        Append(line, e.longestBilateralContactDecisions);
+        Append(line, e.wasGrasped ? 1 : 0);
+        Append(line, e.openingAtReach);
+        Append(line, e.openingAtGrasp);
+        Append(line, e.openingAtMaxHeight);
+        Append(line, e.distanceAtReach);
+        Append(line, e.distanceAtGrasp);
+        Append(line, e.distanceAtMaxHeight);
+        Append(line, e.heightAtReach);
+        Append(line, e.heightAtGrasp);
+        Append(line, e.maximumCubeVerticalVelocity);
+        Append(line, e.meanPositiveCubeVerticalVelocity);
+        Append(line, e.netCubeHeightGain);
+        Append(line, e.liftProgressRewardTotal);
+        Append(line, e.minimumJointLimitMarginNormalized);
+        Append(line, e.jointClosestToLimit);
+        AppendArray(line, e.jointMinimumMargins, 7);
+        AppendArray(line, e.jointMaximumVelocities, 7);
+        Append(line, e.meanAbsJointAction);
+        Append(line, e.maxAbsJointAction);
+        Append(line, e.jointActionSaturationRate);
+        Append(line, e.gripperCloseActionRate);
+        Append(line, e.gripperOpenActionRate);
+        AppendArray(line, e.meanAbsActions, 7);
+        Append(line, e.manipulabilityAtReach);
+        Append(line, e.manipulabilityAtGrasp);
+        Append(line, e.manipulabilityAtMaxHeight);
+        Append(line, e.rewardReach);
+        Append(line, e.rewardGrasp);
+        Append(line, e.rewardLift);
+        Append(line, e.rewardTransport);
+        Append(line, e.rewardPlace);
+        Append(line, e.rewardSingularity);
+        Append(line, e.rewardJointLimit);
+        Append(line, e.rewardVelocity);
+        Append(line, e.rewardTime);
+        Append(line, e.rewardFailure);
+        Append(line, e.rewardPositive);
+        Append(line, e.rewardPenalty);
+        Append(line, e.rewardAccounted);
+        Append(line, e.leftContactDecisions);
+        Append(line, e.rightContactDecisions);
+        Append(line, e.leftOnlyContactDecisions);
+        Append(line, e.rightOnlyContactDecisions);
+        Append(line, e.retentionDecisions);
+        Append(line, e.longestRetentionDecisions);
+        Append(line, e.graspLostCount);
+        line.Append(',').Append(e.curriculumLesson ?? "");
+        Append(line, e.postGraspOpenActionRate);
+        Append(line, e.postGraspCloseActionRate);
+        Append(line, e.meanGripperActionAfterGrasp);
+        Append(line, e.maxGripperActionAfterGrasp);
+        Append(line, e.minGripperActionAfterGrasp);
+        AppendOptionalInt(line, e.stepFirstGraspLoss);
+        Append(line, e.heightAtFirstGraspLoss);
+        Append(line, e.openingAtFirstGraspLoss);
+        Append(line, e.distanceAtFirstGraspLoss);
+        Append(line, e.graspLossesAfterConfirmation);
+        for (int i = 0; i < 5; i++)
+            Append(line, e.reachedLiftMilestone != null && i < e.reachedLiftMilestone.Length &&
+                e.reachedLiftMilestone[i] ? 1 : 0);
+        for (int i = 0; i < 5; i++)
+            AppendOptionalInt(line, e.stepLiftMilestone != null && i < e.stepLiftMilestone.Length
+                ? e.stepLiftMilestone[i] : -1);
+        Append(line, e.rewardGraspLoss);
+        Append(line, e.episodeDurationSimSeconds);
+        Append(line, e.timeoutLimitSeconds);
+        Append(line, e.rewardTimeout);
+        Append(line, e.episodeMaxStep);
+        AppendOptionalInt(line, e.stepTargetAligned);
+        AppendOptionalInt(line, e.stepReleaseReady);
+        AppendOptionalInt(line, e.stepRelease);
+        Append(line, e.targetAligned ? 1 : 0);
+        Append(line, e.releaseReadyReached ? 1 : 0);
+        Append(line, e.releasedCorrectly ? 1 : 0);
+        Append(line, e.releasedTooHigh ? 1 : 0);
+        Append(line, e.horizontalAtAlignment);
+        Append(line, e.horizontalAtReady);
+        Append(line, e.horizontalAtRelease);
+        Append(line, e.releaseHeightAtAlignment);
+        Append(line, e.releaseHeightAtRelease);
+        Append(line, e.verticalVelocityAtRelease);
+        Append(line, e.gripperActionAtRelease);
+        Append(line, e.gripperOpeningAtRelease);
+        Append(line, e.rewardPrePlace);
+        Append(line, e.rewardReleaseReady);
+        Append(line, e.rewardControlledRelease);
+        Append(line, e.rewardHighRelease);
+        for (int i = 0; i < 6; i++)
+            Append(line, e.reachedPrePlaceMilestone != null && i < e.reachedPrePlaceMilestone.Length &&
+                e.reachedPrePlaceMilestone[i] ? 1 : 0);
+        for (int i = 0; i < 6; i++)
+            AppendOptionalInt(line, e.stepPrePlaceMilestone != null && i < e.stepPrePlaceMilestone.Length
+                ? e.stepPrePlaceMilestone[i] : -1);
+        Append(line, e.placedSuccessfully ? 1 : 0);
+        Append(line, e.controlledPlaceSuccess ? 1 : 0);
+        Append(line, e.minimumReleaseHeightWhileHeld);
+        Append(line, e.bestPrePlaceHeight);
+        Append(line, e.rewardPrePlaceMilestones);
+        Append(line, e.rewardPhysicalPlace);
+        Append(line, e.rewardControlledPlace);
+        AppendOptionalInt(line, e.stepReleaseCommand);
+        AppendOptionalInt(line, e.stepGraspLossForRelease);
+        AppendOptionalInt(line, e.stepReleaseConfirmed);
+        Append(line, e.releaseCommandHeight);
+        Append(line, e.graspLossHeightForRelease);
+        Append(line, e.releaseConfirmedHeight);
+        Append(line, e.releaseCommandVerticalVelocity);
+        Append(line, e.graspLossVerticalVelocity);
+        Append(line, e.releaseWasContinuouslyHeldBeforeLoss ? 1 : 0);
+        for (int i = 0; i < 6; i++)
+        {
+            int step = e.stepPrePlaceMilestone != null && i < e.stepPrePlaceMilestone.Length
+                ? e.stepPrePlaceMilestone[i] : -1;
+            Append(line, step >= 0 && (e.stepFirstGraspLoss < 0 ||
+                step < e.stepFirstGraspLoss) ? 1 : 0);
+        }
+        AppendOptionalInt(line, e.stepPrePlaceEligible);
+        Append(line, e.prePlaceEligibleReached ? 1 : 0);
+        AppendOptionalInt(line, e.retentionDecisionsAtTargetAlignment);
+        AppendOptionalInt(line, e.retentionDecisionsAtPrePlaceEligible);
+        Append(line, e.releaseHeightAtPrePlaceEligible);
+        Append(line, e.verticalVelocityAtPrePlaceEligible);
+        Append(line, e.initialObjectYawDeg);
+        Append(line, e.orientationCurriculumLevel);
+        Append(line, e.orientationYawMinDeg);
+        Append(line, e.orientationYawMaxDeg);
+        Append(line, e.alignmentAtFirstGrasp);
+        Append(line, e.rewardAlignment);
+        AppendOptionalInt(line, e.graspToFirstPhysicalLossSteps);
+        line.Append(',').Append(e.orientationSamplingMode);
+        Append(line, e.orientationFocusProbability);
+    }
+
+    private static void WriteEvent(int arenaId, EpisodeEvent e)
+    {
+        if (eventWriter == null || e.jointDegrees == null || e.jointDegrees.Length != 7) return;
+        var line = new StringBuilder(e.timestampUtc ?? Timestamp());
+        line.Append(',').Append(sessionId).Append(',').Append(runName).Append(',')
+            .Append(Int(arenaId)).Append(',').Append(Int(globalEpisode)).Append(',')
+            .Append(e.eventName).Append(',').Append(Int(e.episodeStep));
+        AppendArray(line, e.jointDegrees, 7);
+        Append(line, e.manipulability);
+        Append(line, e.minimumJointMargin);
+        Append(line, e.jointClosestToLimit);
+        Append(line, e.tcpCubeDistance);
+        Append(line, e.cubeHeight);
+        Append(line, e.cubeVerticalVelocity);
+        Append(line, e.gripperOpening);
+        Append(line, e.horizontalTargetDistance);
+        Append(line, e.releaseHeightAboveTarget);
+        Append(line, e.gripperAction);
+        Append(line, e.retentionState ? 1 : 0);
+        AppendOptionalInt(line, e.retentionStreakDecisions);
+        eventWriter.WriteLine(line.ToString());
+    }
+
+    private static void AppendArray(StringBuilder line, float[] values, int count)
+    {
+        for (int i = 0; i < count; i++)
+            Append(line, values != null && i < values.Length ? values[i] : float.NaN);
+    }
+    private static void Append(StringBuilder line, float value) { line.Append(',').Append(NumberOptional(value)); }
+    private static void Append(StringBuilder line, int value) { line.Append(',').Append(Int(value)); }
+    private static void AppendOptionalInt(StringBuilder line, int value)
+    {
+        line.Append(',');
+        if (value >= 0) line.Append(Int(value));
+    }
+
     public static void Flush()
     {
         episodeWriter?.Flush();
         summaryWriter?.Flush();
         stepWriter?.Flush();
+        eventWriter?.Flush();
         sinceFlush = 0;
     }
 
@@ -222,7 +604,8 @@ public static class TrainingCsvLoggerV3
         episodeWriter.Close();
         summaryWriter.Close();
         stepWriter?.Close();
-        episodeWriter = summaryWriter = stepWriter = null;
+        eventWriter?.Close();
+        episodeWriter = summaryWriter = stepWriter = eventWriter = null;
         Application.quitting -= Close;
     }
 
@@ -230,7 +613,7 @@ public static class TrainingCsvLoggerV3
     {
         if (summaryWriter == null || windowCount == 0) return;
         float n = windowCount;
-        summaryWriter.WriteLine(string.Join(",", new[] {
+        var line = new StringBuilder(string.Join(",", new[] {
             Timestamp(), sessionId, runName, Int(globalEpisode), Int(windowCount),
             Number(rewardSum/n), Number(reachCount/n), Number(graspCount/n), Number(liftCount/n),
             Number(targetEntryCount/n), Number(placeCount/n), Number(lengthSum/n), Number(minTcpSum/n),
@@ -246,6 +629,38 @@ public static class TrainingCsvLoggerV3
             NumberOptional(marginEpisodeCount > 0 ? (float)(minMarginSum/marginEpisodeCount) : float.NaN),
             Number((float)(maxVelocitySum/n))
         }));
+        for (int i = 0; i < milestoneCounts.Length; i++)
+            Append(line, milestoneCounts[i] / n);
+        Append(line, (float)(longestRetentionSum / n));
+        Append(line, (float)(graspLossSum / n));
+        Append(line, postGraspRateSamples > 0
+            ? (float)(postGraspOpenRateSum / postGraspRateSamples) : float.NaN);
+        Append(line, (float)(rewardReachSum / n));
+        Append(line, (float)(rewardGraspSum / n));
+        Append(line, (float)(rewardLiftSum / n));
+        Append(line, (float)(durationSum / n));
+        Append(line, timeoutCount / n);
+        Append(line, targetAlignedCount / n);
+        Append(line, releaseReadyCount / n);
+        Append(line, controlledReleaseCount / n);
+        Append(line, highReleaseCount / n);
+        Append(line, releaseCount > 0 ? (float)(releaseHeightSum / releaseCount) : float.NaN);
+        Append(line, releaseCount > 0 ? (float)(releaseHorizontalSum / releaseCount) : float.NaN);
+        Append(line, releaseReadyCount > 0 ? (float)placeGivenReadyCount / releaseReadyCount : float.NaN);
+        for (int i = 0; i < prePlaceMilestoneCounts.Length; i++)
+            Append(line, prePlaceMilestoneCounts[i] / n);
+        Append(line, controlledPlaceCount / n);
+        Append(line, bestPrePlaceSamples > 0
+            ? (float)(bestPrePlaceHeightSum / bestPrePlaceSamples) : float.NaN);
+        Append(line, releaseReadyCount > 0
+            ? (float)controlledPlaceGivenReadyCount / releaseReadyCount : float.NaN);
+        Append(line, releaseCommandSamples > 0
+            ? (float)(releaseCommandHeightSum / releaseCommandSamples) : float.NaN);
+        Append(line, graspLossForReleaseSamples > 0
+            ? (float)(graspLossForReleaseHeightSum / graspLossForReleaseSamples) : float.NaN);
+        Append(line, releaseCommandSamples > 0
+            ? (float)continuousHoldReleaseCount / releaseCommandSamples : float.NaN);
+        summaryWriter.WriteLine(line.ToString());
         ResetWindow();
     }
 
@@ -258,6 +673,18 @@ public static class TrainingCsvLoggerV3
         maxHeldHeightSum = nearLimitSum = minLimitMarginSum = 0f;
         minManipulabilitySum = minMarginSum = maxVelocitySum = 0.0;
         manipEpisodeCount = marginEpisodeCount = 0;
+        Array.Clear(milestoneCounts, 0, milestoneCounts.Length);
+        timeoutCount = postGraspRateSamples = 0;
+        longestRetentionSum = graspLossSum = postGraspOpenRateSum = 0.0;
+        rewardReachSum = rewardGraspSum = rewardLiftSum = durationSum = 0.0;
+        targetAlignedCount = releaseReadyCount = controlledReleaseCount = highReleaseCount = 0;
+        releaseCount = placeGivenReadyCount = 0;
+        releaseHeightSum = releaseHorizontalSum = 0.0;
+        Array.Clear(prePlaceMilestoneCounts, 0, prePlaceMilestoneCounts.Length);
+        controlledPlaceCount = controlledPlaceGivenReadyCount = bestPrePlaceSamples = 0;
+        bestPrePlaceHeightSum = 0.0;
+        releaseCommandSamples = graspLossForReleaseSamples = continuousHoldReleaseCount = 0;
+        releaseCommandHeightSum = graspLossForReleaseHeightSum = 0.0;
     }
 
     private static StreamWriter OpenWriter(string path, string header)

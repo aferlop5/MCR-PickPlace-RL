@@ -119,6 +119,7 @@ __pycache__/
 # ML-Agents training results
 results/
 TrainingLogs/
+TimelapseCube/
 
 # Upgrade logs
 UpgradeLog.htm
